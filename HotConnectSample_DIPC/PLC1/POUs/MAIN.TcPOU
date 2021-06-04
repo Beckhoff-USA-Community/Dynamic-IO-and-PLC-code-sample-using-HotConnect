@@ -1,0 +1,497 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="MAIN" Id="{c9105ffd-252e-460e-ac2e-dc9f8bc0b1e3}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+(*
+*NOTE: This code is an meant as an example of using Hot Connect to create a project with modular I/O.
+*It was written for the purpose of demonstration, and is not meant to be used in a real application.
+*)
+	//Initialize array of each rack type with a maxium size of configured HC groups that match type
+	arrFb2In		: ARRAY[0..GVL_Constants.nMax2InGroups-1] OF FB_2In;
+	arrFb1In1Out	: ARRAY[0..GVL_Constants.nMax1In1OutGroups-1] OF FB_1In_1Out;
+	arrFb2Out		: ARRAY[0..GVL_Constants.nMax2OutGroups-1] OF FB_2Out;
+	arrFb1In		: ARRAY[0..GVL_Constants.nMax1InGroups-1] OF FB_1In;
+	//variables representing the current count of each group type found.
+	n2InCount		: UINT; //number of connected Type 1 2in groups
+	n1In1OutCount	: UINT; //number of connected Type 2 1in 1out groups
+	n2OutCount		: UINT;	//number of connected Type 3 2out groups
+	n1InCount		: UINT; //number of connected Type 4 1in groups
+	//This array will hold each of the function blocks, the Program will execute them in the order they are added to the array,
+	// starting with index 1
+	iSequences	: ARRAY[0..GVL_Constants.nMaxGroups-1]	OF I_ConveyerSection;
+	{attribute 'TcAnalytics'}
+	bInit		: BOOL := TRUE;
+	{attribute 'TcAnalytics'}
+	nCASE		: UINT;
+	
+	bStop		: BOOL;
+	startDelay	: TON;
+	bDelay		: BOOL;
+	bPulse		: BOOL;
+	bReset		: BOOL;
+	sequenceDelay	: TP;
+	nCount			: INT := 0;
+	nScanned		: UINT;
+	
+	//FBs and Variables for finding the physically found EtherCAT Slaves
+	fbGetFound			: FB_EcGetScannedSlaves;
+	fbReadCouplerId		: FB_EcPhysicalReadCmd;
+	arrEcScannedSlaves	: ARRAY [0..EC_MAX_SLAVES] OF ST_EcSlaveScannedData;
+	arrScannedIds		: ARRAY	[0..EC_MAX_SLAVES] OF WORD;
+	arrPrevIds			: ARRAY [0..EC_MAX_SLAVES] OF WORD;
+	bScanned	: BOOL;
+	bFindId		: BOOL;
+	bIdBusy		: BOOL;
+	bIdError	: BOOL;
+	nIdErrId	: UDINT;
+	nIdCount	: INT;
+	bManRecnct	: BOOL := TRUE;
+	FB_HndShk	: FB_HandshakeControl;
+	iCompare	: I_ConveyerSection :=0;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE nCASE OF
+0: //Scan IO for physical slaves.
+	//The PLC needs to wait for the I/O to be read by the EtherCAT master before executing code.
+	//Otherwise this is a race condition, and the PLC will win, the user will lose.
+	startDelay(IN:= TRUE,PT := T#3S,Q=>bDelay);
+	IF bDelay THEN
+		//Once the PLC has waited long enough, it will get all of the scanned slaves.
+		bScanned := getScannedSlaves();	
+		bDelay := FALSE;
+		bInit := FALSE;
+	END_IF
+	//IF the PLC get the scanned hardware correctly
+	IF bScanned THEN
+		//Set our counter and move on to the next case
+		nCount := 0;
+		nCASE := 1;
+	END_IF
+1://get the Ids of each scanned coupler to match with linked Ids on the FB level
+	// If we have not gone through all of the scanned slaves
+	IF nCount < nScanned THEN
+		//If the physicalRead has been executed fo the current slave.
+		IF getFoundIds(nCount) THEN
+			// If the Physical Read is not still busy
+			IF NOT bIdBusy THEN
+				//Tell the fb to Execute
+				bFindId := TRUE; 
+			//Otherwise, tell it not to execute
+			ELSE
+				bFindId := FALSE;
+			END_IF
+			// If the FB has populated the current array index for Scanned Ids move onto the next Index
+			IF arrScannedIds[nIdCount] <> 0 THEN 
+				nCount := nCount + 1;
+				nIdCount := nIdCount +1;
+				IF arrScannedIds[nIdCount] <> arrPrevIds[nIdCount] THEN
+					arrPrevIds[nIdCount] := arrScannedIds[nIdCount];
+				END_IF
+			END_IF
+		//If the physical Read FB was not executed for the current slave
+		ELSE 
+			// move on to the next
+			nCount := nCount + 1;
+		END_IF
+		// IF the scanned slaves have all been read from, or skipped, make sure the most recently read index is not set to 0
+	ELSIF arrScannedIds[nIdCount-1] <> 0 THEN 
+			nCASE := 2;	
+	
+	END_IF
+
+2://Initiate the FBs and place them in the iSequences array of interfaces, in order.
+	Init_FBs();
+	nCount := 0;
+	nCASE := 3;
+3:
+	Start();
+	
+		nCASE :=4;
+	
+4://Call the Execution methods of the FBs
+//Slow down the execution, so the HMI can keep up
+startDelay(IN:= NOT bPulse, PT:= T#500MS, Q=> bPulse);
+	IF bPulse THEN
+		//Exceute the current FunctionBlock method
+		Execution(nCount);
+		//mov on to the next function block in the chain
+		IF nCount < GVL_IO.nPresent-1 THEN
+			nCount := nCount + 1;
+		ELSE
+			nCount := 0;
+		END_IF	
+	END_IF;
+	IF bStop THEN
+		nCASE := 5;
+	END_IF
+5://Stop all execution
+	Stop();
+	nCASE := 6;
+6:
+	IF NOT bStop THEN
+		nCASE := 3;
+	END_IF
+	
+END_CASE
+IF	bREset THEN 
+	nCASE := 0;
+	FOR nCount := 0 TO GVL_IO.nPresent-1 DO
+		iSequences[nCount] := NULL;
+		arrScannedIds[nCount] := 0;
+	END_FOR
+	GVL_IO.nPresent := 0;
+	n1In1OutCount := 0;
+	n2InCount	:= 0;
+	n1InCount	:= 0;
+	n2OutCount	:= 0;
+	nIdCount	:= 0;
+	nCount		:= 0;
+	nScanned	:= 0;
+	bReset := FALSE;
+	bInit := TRUE;
+	bScanned	:= FALSE;
+END_IF
+
+IF nCASE >=4 THEN
+	checkIoStatus();
+	FB_HndShk(arrConveyers := iSequences);
+END_IF
+updateHMI();]]></ST>
+    </Implementation>
+    <Method Name="AddFBtoArray" Id="{c563a780-b08e-45ef-a88e-e8528e748f39}">
+      <Declaration><![CDATA[METHOD PRIVATE AddFBtoArray : BOOL
+VAR_INPUT
+	nextFB	: I_ConveyerSection;
+	nIndex	: UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[iSequences[GVL_IO.nPresent] := nextFB;
+iSequences[GVL_IO.nPresent].Id := GVL_IO.arrIds[nIndex];
+iSequences[GVL_IO.nPresent].Pos := GVL_IO.nPresent;
+GVL_IO.nPresent := GVL_IO.nPresent +1;
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="checkIoStatus" Id="{a909c5d2-ea78-4730-b204-9f28dfba90ce}">
+      <Declaration><![CDATA[METHOD checkIoStatus : BOOL
+VAR_INPUT
+END_VAR
+
+VAR
+	nIndex: UINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//Since the Id process data of Hotconnect groups do not reset to 0 when disconnected, we need to check the State to see if the HC Group is no longer present.
+//If it is no longer present, we need to change the order fo execution for the function blocks
+IF NOT bManRecnct THEN
+	//For each HC groups state,
+	FOR nIndex :=0	TO GVL_Constants.nMaxGroups-1 DO
+		//Check if the current State is different from the previous state read.
+		IF GVL_IO.arrPrevState[nIndex] <> GVL_IO.arrState[nIndex] THEN
+			CASE GVL_IO.arrState[nIndex] OF
+			16#101://State: INIT Slave is not present 
+			//Report the connect loss, and reset the Function Blocks so the PLC stops executing code for it.			
+	
+					ADSLOGDINT(msgCtrlMask:= ADSLOG_MSGTYPE_WARN , 
+					msgFmtStr:= 'HC Group with Id %d is no longer present. Resetting Function Blocks',
+					dintArg:= GVL_IO.arrIds[nIndex]);
+					bReset := TRUE;
+	
+			16#8://State: OP
+			//Report the newly connected HC Group, and Reset the Function Blocks so the PLC executes code for it.
+	
+					ADSLOGDINT(msgCtrlMask:= ADSLOG_MSGTYPE_WARN , 
+					msgFmtStr:= 'HC Group with Id %d has been connected mid Process. Resetting Function Blocks',
+					dintArg:= GVL_IO.arrIds[nIndex]);
+					bReset := TRUE;
+	
+			END_CASE
+			GVL_IO.arrPrevState[nIndex] := GVL_IO.arrState[nIndex];
+		END_IF
+	END_FOR
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Execution" Id="{5d4246cc-3965-4317-a750-694e8b0886d8}">
+      <Declaration><![CDATA[METHOD Execution : BOOL
+VAR_INPUT
+	nCount	: INT;
+END_VAR
+
+VAR
+	//nCount: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//FOR nCount:= 1 TO GVL_IO.nPresent DO
+	iSequences[nCount].Sequence();
+//END_FOR
+
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="getFoundIds" Id="{f2a00852-c62a-4726-aecd-41ceaa68de4d}">
+      <Declaration><![CDATA[METHOD getFoundIds : BOOL
+VAR_INPUT
+	nIndex: INT;
+END_VAR
+
+VAR
+	
+	nEk1101Code	: UDINT := 72166482;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF arrEcScannedSlaves[nIndex].stSlaveIdentity.productCode = nEK1101Code THEN
+	fbReadCouplerId(
+		sNetId:= '5.29.120.74.5.1', 
+		adp:= arrEcScannedSlaves[nIndex].nAddr, 
+		ado:= 16#1000, 
+		len:= SIZEOF(arrScannedIds[nIdCount]), 
+		eType:= eAdressingType_Fixed, 
+		pDstBuf:= ADR(arrScannedIds[nIdCount]), 
+		bExecute:= bFindId,
+		bBusy => bIdBusy,
+		bError => bIdError,
+		nErrId => nIdErrId);				
+		getFoundIds := TRUE;	
+ELSE
+	getFoundIds := FALSE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="getScannedSlaves" Id="{1c1275b5-8b49-4f2e-821e-7398d6d19477}">
+      <Declaration><![CDATA[METHOD getScannedSlaves : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	nCounter	: INT;
+	
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbGetFound(
+	bExecute:= bInit, 
+	sNetId:= '5.29.120.74.5.1', 
+	pArrEcScannedSlaveInfo:= ADR(arrEcScannedSlaves), 
+	cbBufLen:= SIZEOF(arrEcScannedSlaves), 
+	tTimeout:= , 
+	bBusy=> , 
+	bError=> , 
+	nErrorId=> , 
+	nSlaves=> nScanned);
+
+IF nScanned > 0 THEN
+	IF arrEcScannedSlaves[nScanned-1].nAddr > 0 THEN
+		getScannedSlaves := TRUE;
+		END_IF
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Init_FBs" Id="{6a8c0928-8bd0-4b83-8051-e4216a4a4d13}">
+      <Declaration><![CDATA[METHOD Init_FBs : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	nCase		:	UINT;	
+	nIdIndex	: 	UINT;
+	nIndex		: 	UINT;
+	nCopies		:	UINT;
+	nModId		: 	UINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//For each Id read from the scanned slaves...
+FOR nIdIndex := 0 TO nIdCount-1 DO
+	//,And For each ID read from the I/O->PLC links...
+	FOR nIndex := 0 TO nMaxGroups-1 DO
+		//compare the two current Ids and if they match...
+		IF arrScannedIds[nIdIndex] = GVL_IO.arrIds[nIndex] THEN
+			//The I/O->PLC link Id is used for the switch statement case
+			nCase := GVL_IO.arrIds[nIndex];
+			//we get the ordered number of the Id, but getting the remainder of it modulo the range for conveyer "types"
+			//nRange := 10
+			nModId := nCASE MOD nRange;
+			//If the remainder is 0, then the Id was the nRange'th of that type
+			IF nModId = 0 THEN
+				nModId := nRange;			
+			END_IF
+			//Each case is given a range. Each type of conveyers is given a range, so if the Id is within that range, we will assume it is of that type.
+			CASE nCase OF
+			1..10: //Range of 2Input type HCGroup
+				
+				IF GVL_IO.arrState[nIndex] = 8 THEN
+					IF n2InCount < nMax2InGroups THEN
+						AddFBToArray(arrFb2In[nModId-1],nIndex);
+						n2InCount := n2InCount +1;	
+					ELSE
+						nCase := 1000;
+					END_IF
+				END_IF
+			11..20:// Range of 1 Input 1 Output type HC group
+				IF GVL_IO.arrState[nIndex] = 8 THEN
+					IF n1In1OutCount < nMax1In1OutGroups THEN
+						AddFBToArray(arrFb1In1Out[nModId-1],nIndex);
+						n1In1OutCount := n1In1OutCount +1;
+					ELSE
+						nCase := 1000;
+					END_IF
+				END_IF
+			21..30:// Range of 2 Output type HC group
+				IF GVL_IO.arrState[nIndex] = 8 THEN
+					IF n2OutCount < nMax2OutGroups THEN
+						AddFBToArray(arrFb2Out[nModId-1],nIndex);
+						n2OutCount := n2OutCount +1;
+					ELSE
+						nCase := 1000;
+					END_IF
+				END_IF
+			31..40:// Range of 1 Input type HC Group
+				IF GVL_IO.arrState[nIndex] = 8 THEN
+					IF n1InCount < nMax1InGroups THEN			
+						AddFBToArray(arrFb1In[nModId-1],nIndex);
+						n1InCount := n1InCount +1;
+					ELSE
+						nCase := 1000;
+					END_IF
+				END_IF
+			
+			1000://Error
+					bReset := TRUE;
+			END_CASE
+			
+		END_IF
+		GVL_IO.arrPrevState[nIndex] := GVL_IO.arrState[nIndex];
+	END_FOR
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Start" Id="{18031cbc-331b-4928-a985-ac2c6bbb0b48}">
+      <Declaration><![CDATA[METHOD Start : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	nCount	: INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//for each function block in the sequence array...
+FOR nCount:= 0 TO GVL_IO.nPresent-1 DO
+	//call that function block's stopSequence method.
+	iSequences[nCount].startSequence();
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Stop" Id="{b0c078e6-e4ac-42c3-997a-ad711e2636ab}">
+      <Declaration><![CDATA[METHOD Stop : BOOL
+VAR_INPUT
+END_VAR
+
+VAR
+	nCount: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//for each function block in the sequence array...
+FOR nCount:= 0 TO GVL_IO.nPresent-1 DO
+	//call that function block's stopSequence method.
+	iSequences[nCount].stopSequence();
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="updateHMI" Id="{f3aea0e6-b6b8-4899-aba5-518831f99ac3}">
+      <Declaration><![CDATA[METHOD updateHMI : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	nCount	: INT;
+	nCount2	: INT;
+	nPresent : INT := 0;
+	nIndex	: INT;
+	arrIndexes	: ARRAY[0..nMaxGroups-1] OF INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[GVL_HMI.bType1Present := FALSE;
+GVL_HMI.bType2Present := FALSE;
+GVL_HMI.bType3Present := FALSE;
+GVL_HMI.bType4Present := FALSE;
+
+//update Configured, and some of Pysical
+FOR nCount := 0 TO (GVL_Constants.nMaxGroups - 1)DO	 
+		GVL_HMI.arrPresent[nCount] := ((GVL_IO.arrIds[nCount] <> 0) AND (GVL_IO.arrState[nCount] = 16#08));
+		IF GVL_HMI.arrPresent[nCount] THEN
+			arrIndexes[nPresent] := nCount;
+			nPresent := nPresent + 1;
+		END_IF
+		
+		GVL_HMI.arrPhysicalMissing[nCount] := TRUE;
+		IF (nCount < GVL_IO.nPresent) AND (__QUERYINTERFACE(iSequences[nCount],iCompare)) THEN
+			
+			GVL_HMI.arrPhysicalIds[nCount] := iSequences[nCount].Id;
+			GVL_HMI.arrTerminalData[nCount]:= iSequences[nCount].HMI;
+			GVL_HMI.arrPhysicalMissing[nCount] := FALSE;
+		END_IF
+
+	CASE GVL_IO.arrIds[nCount] OF
+	
+	1..10://Type 1
+		IF GVL_HMI.arrPresent[nCount] THEN
+			GVL_HMI.bType1Present := TRUE;
+
+		END_IF
+	11..20://Type 2
+		IF GVL_HMI.arrPresent[nCount] THEN
+			GVL_HMI.bType2Present := TRUE;
+
+		END_IF
+	21..30://Type 3
+		IF GVL_HMI.arrPresent[nCount] THEN
+			GVL_HMI.bType3Present := TRUE;
+			
+		END_IF
+	31..40://Type 4	
+		IF GVL_HMI.arrPresent[nCount] THEN
+			GVL_HMI.bType4Present := TRUE;
+			
+		END_IF
+	END_CASE
+
+END_FOR
+
+
+//update physical version of HMI
+FOR nCount := 0 TO (GVL_IO.nPresent - 1)DO
+	GVL_HMI.arrConnected[nCount] := FALSE;
+	IF nCount < nPresent THEN
+	GVL_HMI.arrConnected[nCount] := ((GVL_HMI.arrPhysicalIds[nCount] <> 0) AND (GVL_HMI.arrPresent[arrIndexes[nCount]]));
+	END_IF
+	nCount2 := nCount*2;
+		CASE GVL_HMI.arrPhysicalIds[nCount] OF
+			1..10://Type 1
+			GVL_HMI.arrTerminalNames[nCount2] := 6;
+			GVL_HMI.arrTerminalNames[nCount2+1] := 6;
+			GVL_HMI.arrRackNames[nCount] := 1;
+			11..20://Type 2
+			GVL_HMI.arrTerminalNames[nCount2] := 6;
+			GVL_HMI.arrTerminalNames[nCount2+1] := 5;
+			GVL_HMI.arrRackNames[nCount] := 2;
+			21..30://Type 3
+			GVL_HMI.arrTerminalNames[nCount2] := 5;
+			GVL_HMI.arrTerminalNames[nCount2+1] := 5;
+			GVL_HMI.arrRackNames[nCount] := 3;
+			31..40://Type 4	
+			GVL_HMI.arrTerminalNames[nCount2] := 6;
+			GVL_HMI.arrTerminalNames[nCount2+1] := 7;
+			GVL_HMI.arrRackNames[nCount] := 4;
+		END_CASE
+		
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="ST_EL2008" Id="{1b83c65f-07d6-4b1c-b3e4-2e13e30a1d67}">
+    <Declaration><![CDATA[TYPE ST_EL2008 :
+STRUCT
+	Output1	: BOOL;
+	Output2	: BOOL;
+	Output3	: BOOL;
+	Output4	: BOOL;
+	Output5	: BOOL;
+	Output6	: BOOL;
+	Output7	: BOOL;
+	Output8	: BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

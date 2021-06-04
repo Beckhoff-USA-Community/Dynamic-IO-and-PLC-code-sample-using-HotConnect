@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <GVL Name="GVL_IO" Id="{579370d6-ca1e-414c-b130-d01e9580ec48}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	arrIds	AT %I*: ARRAY[0..GVL_Constants.nMaxgroups-1] OF UINT; //Ids read from I/O->PLC links
+	nPresent	: INT; //Number of total Conveyer Groups
+	arrState	AT %I*: ARRAY[0..GVL_Constants.nMaxGroups-1] OF UINT; //array of the states of each HC Group
+	arrPrevState	: ARRAY[0..GVL_Constants.nMaxGroups-1] OF UINT; //array of previously recorded states for the HC Groups. Updated on Change.
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

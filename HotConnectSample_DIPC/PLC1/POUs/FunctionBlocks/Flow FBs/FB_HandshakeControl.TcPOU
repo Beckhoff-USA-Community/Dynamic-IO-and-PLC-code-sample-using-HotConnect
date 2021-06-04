@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_HandshakeControl" Id="{4751ad56-9832-4e14-99e9-7791c3a8db3f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_HandshakeControl
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	nCount: INT;
+END_VAR
+VAR_IN_OUT
+	arrConveyers	: ARRAY[0..nMaxGroups-1] OF I_ConveyerSection;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FOR nCount :=0 TO GVL_IO.nPresent-1 DO
+	IF nCount < GVL_IO.nPresent-1 THEN
+		arrConveyers[nCount+1].UpStrmHndShkIn  := arrConveyers[nCount].DwnStrmHndShkOut;
+	END_IF
+	IF nCount > 0 THEN
+		arrConveyers[nCount-1].DwnStrmHndShkIn := arrConveyers[nCount].UpStrmHndShkOut;
+			
+	END_IF
+END_FOR]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

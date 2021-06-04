@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="ST_1In1Out" Id="{c65261e8-239f-45dd-b4a8-83f03e6f6332}">
+    <Declaration><![CDATA[TYPE ST_1In1Out :
+STRUCT
+	ST_In	AT %I*	: ST_EL1008;
+	ST_Out	AT %Q*	: ST_EL2008;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

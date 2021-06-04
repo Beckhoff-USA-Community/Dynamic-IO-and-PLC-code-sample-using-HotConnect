@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <Itf Name="I_ConveyerSection" Id="{04d35945-385d-4123-9f2d-0739f05d8d7a}">
+    <Declaration><![CDATA[INTERFACE I_ConveyerSection EXTENDS __SYSTEM.IQueryInterface
+]]></Declaration>
+    <Property Name="DwnStrmHndShkIn" Id="{c188acd7-255a-464a-9ec1-1a7a647d59fe}">
+      <Declaration><![CDATA[PROPERTY DwnStrmHndShkIn : BOOL]]></Declaration>
+      <Set Name="Set" Id="{1f5f4b12-5a3d-49e4-b953-36bb472f7c39}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="DwnStrmHndShkOut" Id="{0c288d01-69ae-40ab-bd04-cec4de488d06}">
+      <Declaration><![CDATA[PROPERTY DwnStrmHndShkOut : BOOL]]></Declaration>
+      <Get Name="Get" Id="{3dd57110-d022-4d7f-9835-f056523666b1}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="HMI" Id="{14b95b79-30a2-4403-958e-3a413ec685e4}">
+      <Declaration><![CDATA[PROPERTY HMI : ARRAY[0..15] OF BOOL]]></Declaration>
+      <Get Name="Get" Id="{86ead9e8-1bb6-4423-9fad-524d3fadc868}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="Id" Id="{d1169deb-72c7-4805-ad05-40dc16710016}">
+      <Declaration><![CDATA[PROPERTY Id : UINT]]></Declaration>
+      <Get Name="Get" Id="{a3d5a66a-749c-4c19-b6d0-65d283ddc20d}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{b121f4d3-40a8-4233-8949-e50f88a25dbc}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="Pos" Id="{163d15c6-d9fe-441e-a293-f71f6cfda351}">
+      <Declaration><![CDATA[PROPERTY Pos : INT]]></Declaration>
+      <Get Name="Get" Id="{e165856c-5cfa-4fa1-b5b4-ea555dc55d47}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{d205e006-5608-4033-a16d-8b316a867f9c}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Method Name="Sequence" Id="{afede655-2abb-4409-8510-a47763fd7f4c}">
+      <Declaration><![CDATA[METHOD  Sequence : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="startSequence" Id="{4056de14-a7e2-450a-b73c-a88c86b2def7}">
+      <Declaration><![CDATA[METHOD startSequence : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="stopSequence" Id="{5b80c52f-6efe-4fee-89ab-84ec1a9d4f20}">
+      <Declaration><![CDATA[METHOD stopSequence : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Property Name="UpStrmHndShkIn" Id="{dbd0dc8a-bfa3-43a9-bb38-0d9db277c5c5}">
+      <Declaration><![CDATA[PROPERTY UpStrmHndShkIn : BOOL]]></Declaration>
+      <Set Name="Set" Id="{a419933d-a7e4-4761-912e-7f9846f6bae7}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="UpStrmHndShkOut" Id="{b5eceecb-2001-417e-9f79-881fadc4567d}">
+      <Declaration><![CDATA[PROPERTY UpStrmHndShkOut : BOOL]]></Declaration>
+      <Get Name="Get" Id="{5457ecda-8b58-4b67-9db7-1819519620a8}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+  </Itf>
+</TcPlcObject>

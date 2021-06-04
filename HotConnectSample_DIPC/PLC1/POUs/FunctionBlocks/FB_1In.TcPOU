@@ -1,0 +1,185 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_1In" Id="{69112205-9d6f-474f-b10d-7b545cab5af9}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_1In IMPLEMENTS  I_ConveyerSection
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	stRack	: ST_1In;
+	nStep	: UINT;
+	bStart	: BOOL;
+	_mDwnStrmHndShkIn	: BOOL;
+	_mDwnStrmHndShkOut	: BOOL;
+	_mUpStrmHndShkIn	: BOOL;
+	_mUpStrmHndShkOut	: BOOL;
+	_mId				: UINT;
+	_mHMI				: ARRAY[0..15] OF BOOL;
+	_mPosition			: INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Sequence();
+]]></ST>
+    </Implementation>
+    <Property Name="DwnStrmHndShkIn" Id="{62d87802-6be3-43ec-af20-57545eff08ac}">
+      <Declaration><![CDATA[
+PROPERTY DwnStrmHndShkIn : BOOL
+]]></Declaration>
+      <Set Name="Set" Id="{366c0c62-e178-48b8-b30f-fe8f95e4c794}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_mDwnStrmHndShkIn := DwnStrmHndShkIn;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="DwnStrmHndShkOut" Id="{d63d0cd9-6534-4340-b922-18c447c479c1}">
+      <Declaration><![CDATA[
+PROPERTY DwnStrmHndShkOut : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{1fb24d9c-06ac-4922-8500-808cb0a867b4}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[DwnStrmHndShkOut := _mDwnStrmHndShkOut;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="HMI" Id="{e6142e13-9744-4329-886b-1d9a12ef41b7}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY HMI : ARRAY [0..15] OF BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{b6133b20-da36-48f7-86cc-004f8c654c97}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_mHMI[0] := stRack.ST_In.Input1;
+_mHMI[1] := stRack.ST_In.Input2;
+_mHMI[2] := stRack.ST_In.Input3;
+_mHMI[3] := stRack.ST_In.Input4;
+_mHMI[4] := stRack.ST_In.Input5;
+_mHMI[5] := stRack.ST_In.Input6;
+_mHMI[6] := stRack.ST_In.Input7;
+_mHMI[7] := stRack.ST_In.Input8;
+
+HMI := _mHMI;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="Id" Id="{e768e5e1-e8ee-443c-8e78-d6b21f75ea53}">
+      <Declaration><![CDATA[
+PROPERTY Id : UINT
+]]></Declaration>
+      <Get Name="Get" Id="{262c2d33-0f40-4345-b79f-e50cf13f4af2}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Id := _mId;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{8c38385c-85ae-4396-8ae4-2f8dfd11f97d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_mId := Id;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="Pos" Id="{22a01094-5ca5-4903-af3a-5a7f32f66e6f}">
+      <Declaration><![CDATA[{warning 'add property implementation'}
+PROPERTY Pos : INT
+]]></Declaration>
+      <Get Name="Get" Id="{ce68ab4c-3e6f-45f4-9c08-97e6fcd6f734}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Pos := _mPosition;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{e5f10f37-486e-436e-8743-044b4b2a115f}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_mPosition := Pos;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="Sequence" Id="{46198718-0e30-4579-b525-3cbcae3d9fc1}">
+      <Declaration><![CDATA[
+METHOD Sequence : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _mDwnStrmHndShkIn THEN
+	stRack.ST_In.Input1 := TRUE;
+	stRack.ST_In.Input3	:= TRUE;
+	stRack.ST_In.Input5	:= TRUE;
+	stRack.ST_In.Input7	:= TRUE;
+END_IF
+
+IF _mUpStrmHndShkIn THEN
+	stRack.ST_In.Input2 := TRUE;
+	stRack.ST_In.Input4	:= TRUE;
+	stRack.ST_In.Input6	:= TRUE;
+	stRack.ST_In.Input8	:= TRUE;
+END_IF
+
+THIS^._mDwnStrmHndShkOut := THIS^._mUpStrmHndShkIn;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="startSequence" Id="{94b24fda-ddbb-41c6-a55b-e5218ac5ccbc}">
+      <Declaration><![CDATA[
+METHOD startSequence : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bStart := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="stopSequence" Id="{f9aa8ba6-5a6d-4f45-a58e-a17a93e33750}">
+      <Declaration><![CDATA[
+METHOD stopSequence : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bStart := FALSE;
+nStep := 0;
+THIS^._mDwnStrmHndShkOut := FALSE;
+THIS^._mUpStrmHndShkOut := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="UpStrmHndShkIn" Id="{a01159d0-4fa9-439a-bdbf-069b2012fd58}">
+      <Declaration><![CDATA[
+PROPERTY UpStrmHndShkIn : BOOL
+]]></Declaration>
+      <Set Name="Set" Id="{cc432e79-78f6-4552-b206-b518920df8d9}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_mUpStrmHndShkIn := UpStrmHndShkIn;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="UpStrmHndShkOut" Id="{1e434b8a-25e0-4ce5-8522-33e70298937b}">
+      <Declaration><![CDATA[
+PROPERTY UpStrmHndShkOut : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{1ce30805-968a-44f3-a4e8-bbce00ac69b9}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[UpStrmHndShkOut	:= _mUpStrmHndShkOut;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+  </POU>
+</TcPlcObject>

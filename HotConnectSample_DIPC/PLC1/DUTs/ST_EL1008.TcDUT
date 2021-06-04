@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="ST_EL1008" Id="{6a75c7e6-1478-4c78-a23d-9c06e49e8c48}">
+    <Declaration><![CDATA[TYPE ST_EL1008 :
+STRUCT
+	Input1	: BOOL;
+	Input2	: BOOL;
+	Input3	: BOOL;
+	Input4	: BOOL;
+	Input5	: BOOL;
+	Input6	: BOOL;
+	Input7	: BOOL;
+	Input8	: BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="ST_EL1004" Id="{384e0d28-ef56-4123-81da-c6a1eea42fcd}">
+    <Declaration><![CDATA[TYPE ST_EL1004 :
+STRUCT
+	Inputs	AT %I*	: ARRAY[0..3] OF BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

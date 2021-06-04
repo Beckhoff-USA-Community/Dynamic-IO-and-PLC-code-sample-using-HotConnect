@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <GVL Name="GVL_Constants" Id="{8d4257be-7917-4948-89c9-cad406f58986}">
+    <Declaration><![CDATA[
+VAR_GLOBAL CONSTANT
+	nMaxGroups			:	UINT := 8; //The number of HC Groups currently configured in the I/O Tree
+	nMax2InGroups		: UINT :=2; //The number of
+	nMax1In1OutGroups	: UINT :=2;
+	nMax2OutGroups		: UINT :=2;
+	nMax1InGroups		: UINT :=2;
+	nRange				: UINT := 10;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

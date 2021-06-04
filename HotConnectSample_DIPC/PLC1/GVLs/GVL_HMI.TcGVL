@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <GVL Name="GVL_HMI" Id="{5ebb54f4-3fb3-45b4-896d-8e3289f016ef}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+bType1Present	: BOOL;
+bType2Present	: BOOL;
+bType3Present	: BOOL;	
+bType4Present	: BOOL;
+
+arrPresent			: ARRAY[0..GVL_Constants.nMaxGroups-1] OF BOOL;
+arrConnected		: ARRAY[0..GVL_Constants.nMaxGroups-1] OF BOOL;
+arrPhysicalIds		: ARRAY[0..nMaxGroups-1] OF UINT;
+arrRackNames		: ARRAY[0..nMaxGroups-1] OF INT;
+arrTerminalNames	: ARRAY[0..15] OF INT;
+arrTerminalData		: ARRAY[0..GVL_Constants.nMaxGroups-1] OF ARRAY[0..15] OF BOOL;
+arrPhysicalMissing	: ARRAY[0..GVL_Constants.nMaxGroups-1] OF BOOL;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>
